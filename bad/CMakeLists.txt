@@ -18,6 +18,8 @@
 
 add_executable(bad a.cpp b.cpp main.cpp)
 add_executable(bad_ut b.cpp unittest.cpp)
+add_executable(bad_perf a.cpp b.cpp performance.cpp)
 
 target_compile_options(bad PRIVATE -O3 -DNDEBUG)
 target_compile_options(bad_ut PRIVATE -g)
+target_compile_options(bad_perf PRIVATE -O3 -DNDEBUG)

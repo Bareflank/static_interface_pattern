@@ -19,8 +19,18 @@
 cmake_minimum_required(VERSION 3.13)
 project(static_abstract_interface_pattern CXX)
 
+include(ExternalProject)
+
+# ------------------------------------------------------------------------------
+# flags
+# ------------------------------------------------------------------------------
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXE_LINKER_FLAGS "-Wl,--strip-all")
+
+# ------------------------------------------------------------------------------
+# source
+# ------------------------------------------------------------------------------
 
 add_subdirectory(bad)
 add_subdirectory(dynamic_abstraction)

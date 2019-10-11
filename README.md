@@ -357,6 +357,240 @@ As shown above, instead of including `A` in our `main()` function, we include th
 
 ## Static Abstraction
 
+The goals of static abstraction are to leverage the design advantages of dynamic abstraction without the performance hits it imposes. To accomplish this, we will start by implementing our interface as follows:
+
+```cpp
+template<typename T>
+struct interface
+{
+    constexpr void foo()
+    {
+        static_cast<T *>(this)->d.foo();
+    }
+};
+```
+
+To better understand how this will work, let us also show how `A` is defined:
+
+```cpp
+#include "interface.h"
+
+class A :
+    public interface<A>
+{
+    struct details {
+        void foo();
+    };
+
+    details d;
+    friend class interface<A>;
+};
+```
+
+The combination of `A` and the interface is a pattern called static polymorphism (also referred to as curiously recurring template pattern). `A` inherits the interface, which intern provides a defintion of itself to the interface. The interface itself makes call back to `A` as needed which provides the interface at compile-time with an implementation of itself. Finally, we wrap the implementation of `A` into a `details` structure to ensure that anything using the interface can only ever access functions from the interface (ensuring the user of the interface doesn't accidentially introduce coupling)
+
+Although static polymorphism is critical to the design of the static abstract interface pattern, it is not enough. `B` itself must only ever depend on the interface. The problem with static polymorphism is that you cannot simply store a pointer to the interface to access the functions the interface contains. Instead, if you attempt to access the interface's functions, you must also know information about the type provided to the interface. Meaning, the interface and its implementation are always coupled at compile-time, a problem that dynamic polymorphism does not share. To solve this problem, we complete our abstract interface pattern with the following defintion of `B`:
+
+```cpp
+#include "interface.h"
+#include <type_traits>
+
+template<typename T>
+struct B
+{
+    static_assert(std::is_base_of_v<interface<T>, T>);
+
+    void bar();
+    T m_a;
+};
+```
+
+As shown, `B` is also defined as a template. We leverage std::is_base_of to ensure that `T` adheres to the interface and we store our instance of T as a member of `B`, just like our original example. Note that if binary compatibility (as defined by OCP) is required, you could and a pimpl to `B` as well to store `T`.
+
+One issue with the use of a template definition of `B` is where you place the source code. Typically, template classes are defined and implemented in a header file. For a large project, with a lot of objects, this is a terrible idea as compile times would be terrible. It also reintroduces issues with the ISP as your implementation will almost certainly have its own dependencies and includes that you do not want in your definition of `B` (once again, we only want `B`'s header to contain the interface, but if the same header file implements `B` as well, you might have other headers that you would have to include). To address this, we will place the implementation of `B` in its own source file as follows:
+
+```cpp
+#include "b.h"
+
+template<typename T>
+void
+B<T>::bar()
+{
+    m_a.foo();
+}
+```
+
+As shown above, `B` is able to call the `foo()` function as needed, and it cannot call any functions not in the interface as `B` itself is actually implemented in the `details` nested class as private, preventing access or even visibility to any of these functions.
+
+Of course the question is, how do we compile this code as it is a template, and not actual source code. In our previous example, the implementation of `B` statically stated that `A` was the "thing" that `B` depended on. The goal of the static abstract interface pattern is to adhere to S.O.L.I.D, and not to simply use generic programming everywhere. Meaning, nothing about the original problem has changed. `B` still relies on `A`, and therefore adding the following to `B`'s implementation is an option:
+
+```cpp
+#include "a.h"
+template class B<A>;
+```
+
+The above code is called "explicit instantiation", and results in a complete definition of `B` given `A`, meaning we can now use `B<A>` anywhere we include the definition of `B`. Note that since the definition of `B` doesn't include the defintion of `A`, our code still adheres to S.O.L.I.D. Another option is to include the implementation of `B` when `B` is actually instantiated as follows:
+
+```cpp
+#include "a.h"
+#include "b.h"
+#include "b.cpp"
+
+int main()
+{
+    B<A> b;
+    b.bar();
+
+    return 0;
+}
+```
+
+As shown above, we include "b.cpp" which ensures that we get a complete implementation of `B` using the "inclusion" model. Note that both the explicit instantiation model, or the inclusion model work, and it just depends on how your project is organized. As will be shown, the inclusion model is the preferred approach as the compiler is given a complete defintion of the template class, allowing for further optimizations that even our general problem above cannot realize.
+
+With respect to testing, like dynamic abstraction, static abstraction also supports testing as follows:
+
+```cpp
+#include "interface.h"
+#include "b.h"
+#include "b.cpp"
+
+#include <iostream>
+
+struct A_mock :
+    public interface<A_mock>
+{
+    void foo()
+    {
+        std::cout << "mocked foo\n";
+    }
+};
+
+int main()
+{
+    B<A_mock> b;
+    b.bar();
+
+    return 0;
+}
+```
+
+As shown above, instead of including `A`, we include the interface and create a mocked version of `A` so that we can test `B`. The difference is this type substitution occurs without the need for virtual inheritance improving performance.
+
 ## Performance Comparisons
 
+To prove that the static abstract interface pattern performs as good or better than the approach taken in the general problem, let us create a simple set of performance tests.
+
+First, we will need a control as follows:
+
+```cpp
+#include "b.h"
+
+int main()
+{
+    B b;
+
+    for (auto i = 0ULL; i < 1000000000; i++) {
+        b.bar();
+    }
+
+    return 0;
+}
+```
+
+The above performance test uses our "bad" implementation defined in the original general problem. If we execute this code using "time" we get the following output (on an Intel(R) Core(TM) i7-7500U):
+
+```bash
+> time ./bad/bad_perf
+
+real    0m1.466s
+user    0m1.461s
+sys     0m0.002s
+```
+
+If we run the same test using dynamic abstraction, we get the following:
+
+```bash
+> time ./dynamic_abstraction/dynamic_abstraction_perf
+
+real    0m1.758s
+user    0m1.748s
+sys     0m0.006s
+```
+
+Clearly, dynamic abstraction runs slower (20% slower). Now let us run the same performance test using the explicit instantiation version of our static abstract interface:
+
+```bash
+> time ./static_abstraction/static_abstraction_perf
+
+real    0m1.461s
+user    0m1.456s
+sys     0m0.003s
+```
+
+As shown, our static abstract interface performs as good as the general solution does that doesn't adhere to S.O.L.I.D, meaning static abstraction doesn't impose a run-time performance cost, but still provides the needed abstraction to remain compliant. It should also be noted that if you do a binary diff between the explicit instantiation version of our pattern with the general problem, you get a byte for byte exact copy. Meaning, even though static abstraction adds all of the additional template source code overhead, the resulting code is byte for byte identical to the source code without the abstraction once compiled... something dynamic abstraction cannot claim. This does not mean that static abstraction doesn't come at a cost as it is clearly more difficult to read and understand. All we claim is that it does not impose a run-time performance hit, and should outperform the general implementation with respect to build times as the reduction of include files not only decouples the code, it also helps with build times.
+
+If we use the inclusion model, we see the following:
+
+```bash
+> time ./static_abstraction/static_abstraction_perf
+
+real    0m1.171s
+user    0m1.167s
+sys     0m0.003s
+```
+
+As shown above, the inclusion model outperforms the general problem. This is because (if you look at a diff between the two resulting binaries), the inclusion model provides enough information to the compiler allowing it to remove the `bar()` and directly inline the `foo()` into the performance test. We could do the same thing if we wrote `B` as follows in the general problem:
+
+```cpp
+#include "a.h"
+
+struct B
+{
+    inline void bar()
+    {
+        m_a.foo();
+    }
+
+    A m_a;
+};
+```
+
+Once again, however, this would result in implementation details showing up in our definition, likely resulting in more dependencies and higher coupling. Using the template approach for `B` allows us to keep the definition and implementation separate, while still allowing the compiler to inline as needed (i.e. best of both worlds).
+
 ## C++20 Concepts
+
+C++20 offers to remove the human costs of this pattern through the use of C++20 Concepts (at the expense of the C++ language and compilers being more complex). To better understand how this will work once C++20 is available, let us look at how the interface would be written:
+
+```cpp
+template<typename T>
+concept interface = requires(T t) {
+    { t.foo() };
+};
+```
+
+As shown here, using C++20 concepts allows us to remove the need for static polymorphism from the pattern (the need for `B` to be a template is still required), allowing `A` to be defined as the following:
+
+```cpp
+class A
+{
+public:
+    void foo();
+};
+```
+
+As shown, `A` now has the same defintion as our general problem, meaning `A` is now a simple class with now additional decorations. The definition of `B` is as follows:
+
+```cpp
+#include "interface.h"
+
+template<interface T>
+struct B
+{
+    void bar();
+    T m_a;
+};
+```
+
+As shown above, `B` must still be a template, but `T` is now defined using the `interface` and not `typename`. This removes the need for the type traits static assert, and instead tells the compiler to use C++20 Concepts to ensure that `T` adheres to the Concept called `interface`. Everything else about this pattern remains the same. For more information, please see the following:
+
+https://www.cppfiddler.com/2019/06/09/concept-based-interfaces/

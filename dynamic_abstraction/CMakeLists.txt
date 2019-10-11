@@ -18,6 +18,8 @@
 
 add_executable(dynamic_abstraction a.cpp b.cpp main.cpp)
 add_executable(dynamic_abstraction_ut a.cpp b.cpp unittest.cpp)
+add_executable(dynamic_abstraction_perf a.cpp b.cpp performance.cpp)
 
 target_compile_options(dynamic_abstraction PRIVATE -O3 -DNDEBUG)
 target_compile_options(dynamic_abstraction_ut PRIVATE -g)
+target_compile_options(dynamic_abstraction_perf PRIVATE -O3 -DNDEBUG)

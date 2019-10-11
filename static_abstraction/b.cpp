@@ -52,5 +52,5 @@ B<T>::bar()
 // Uncomment the following if you wish to prove that static abstraction
 // results in the same executable as the bad case.
 //
-#include "a.h"
-template class B<A>;
+// #include "a.h"
+// template class B<A>;
