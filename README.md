@@ -389,7 +389,7 @@ class A :
 
 The combination of `A` and the interface is a pattern called static polymorphism (also referred to as curiously recurring template pattern). `A` inherits the interface, which intern provides a defintion of itself to the interface. The interface itself makes call back to `A` as needed which provides the interface at compile-time with an implementation of itself. Finally, we wrap the implementation of `A` into a `details` structure to ensure that anything using the interface can only ever access functions from the interface (ensuring the user of the interface doesn't accidentially introduce coupling)
 
-Although static polymorphism is critical to the design of the static abstract interface pattern, it is not enough. `B` itself must only ever depend on the interface. The problem with static polymorphism is that you cannot simply store a pointer to the interface to access the functions the interface contains. Instead, if you attempt to access the interface's functions, you must also know information about the type provided to the interface. Meaning, the interface and its implementation are always coupled at compile-time, a problem that dynamic polymorphism does not share. To solve this problem, we complete our abstract interface pattern with the following defintion of `B`:
+Although static polymorphism is critical to the design of the static abstract interface pattern, it is not enough. `B` itself must only ever depend on the interface. The problem with static polymorphism is that you cannot simply store a pointer to the interface to access the functions the interface contains. Instead, if you attempt to access the interface's functions, you must also know information about the type provided to the interface. Meaning, the interface and its implementation are always coupled at compile-time, a problem that dynamic polymorphism does not share. To solve this problem, we complete our static abstract interface pattern with the following defintion of `B`:
 
 ```cpp
 #include "interface.h"
@@ -405,9 +405,9 @@ struct B
 };
 ```
 
-As shown, `B` is also defined as a template. We leverage std::is_base_of to ensure that `T` adheres to the interface and we store our instance of T as a member of `B`, just like our original example. Note that if binary compatibility (as defined by OCP) is required, you could and a pimpl to `B` as well to store `T`.
+As shown, `B` is also defined as a template. We leverage `std::is_base_of` to ensure that `T` adheres to the interface and we store our instance of `T` as a member of `B`, just like our original example. Note that if binary compatibility (as defined by OCP) is required, you could add a `pimpl` to `B` as well to store `T`.
 
-One issue with the use of a template definition of `B` is where you place the source code. Typically, template classes are defined and implemented in a header file. For a large project, with a lot of objects, this is a terrible idea as compile times would be terrible. It also reintroduces issues with the ISP as your implementation will almost certainly have its own dependencies and includes that you do not want in your definition of `B` (once again, we only want `B`'s header to contain the interface, but if the same header file implements `B` as well, you might have other headers that you would have to include). To address this, we will place the implementation of `B` in its own source file as follows:
+One issue with the use of a template definition of `B` is where you place the source code. Typically, template classes are defined and implemented in a header file. For a large project, with a lot of objects, this is a terrible idea as compile times would be terrible. It also reintroduces issues with the ISP as your implementation will almost certainly have its own dependencies and includes that you do not want in your definition of `B` (once again, we only want `B`'s definition to require the interface, but if the definition also implements `B`, you might have other headers, dependencies and coupling that you would have to include). To address this, we will place the implementation of `B` in its own source file as follows:
 
 ```cpp
 #include "b.h"
@@ -420,7 +420,7 @@ B<T>::bar()
 }
 ```
 
-As shown above, `B` is able to call the `foo()` function as needed, and it cannot call any functions not in the interface as `B` itself is actually implemented in the `details` nested class as private, preventing access or even visibility to any of these functions.
+As shown above, `B` is able to call the `foo()` function as needed, and it can only call functions in the interface as `A` itself is actually implemented in the `details` nested class, preventing access or even visibility to any of these functions.
 
 Of course the question is, how do we compile this code as it is a template, and not actual source code. In our previous example, the implementation of `B` statically stated that `A` was the "thing" that `B` depended on. The goal of the static abstract interface pattern is to adhere to S.O.L.I.D, and not to simply use generic programming everywhere. Meaning, nothing about the original problem has changed. `B` still relies on `A`, and therefore adding the following to `B`'s implementation is an option:
 
@@ -527,7 +527,7 @@ user    0m1.456s
 sys     0m0.003s
 ```
 
-As shown, our static abstract interface performs as good as the general solution does that doesn't adhere to S.O.L.I.D, meaning static abstraction doesn't impose a run-time performance cost, but still provides the needed abstraction to remain compliant. It should also be noted that if you do a binary diff between the explicit instantiation version of our pattern with the general problem, you get a byte for byte exact copy. Meaning, even though static abstraction adds all of the additional template source code overhead, the resulting code is byte for byte identical to the source code without the abstraction once compiled... something dynamic abstraction cannot claim. This does not mean that static abstraction doesn't come at a cost as it is clearly more difficult to read and understand. All we claim is that it does not impose a run-time performance hit, and should outperform the general implementation with respect to build times as the reduction of include files not only decouples the code, it also helps with build times.
+As shown, our static abstract interface performs as good as the general problem does that doesn't adhere to S.O.L.I.D, meaning static abstraction doesn't impose a run-time performance cost, but still provides the needed abstraction to remain compliant. It should also be noted that if you do a binary diff between the explicit instantiation version of our pattern with the general problem, you get a byte for byte exact copy. Meaning, even though static abstraction adds all of the additional template source code overhead, the resulting code is byte for byte identical to the source code in the general problem once compiled... something dynamic abstraction cannot claim. This does not mean that static abstraction doesn't come at a cost as it is clearly more difficult to read and understand. All we claim is that it does not impose a run-time performance hit, and should outperform the general implementation with respect to build times as the reduction of include files not only decouples the code, it also helps with build times (less headers including more headers).
 
 If we use the inclusion model, we see the following:
 
@@ -539,7 +539,7 @@ user    0m1.167s
 sys     0m0.003s
 ```
 
-As shown above, the inclusion model outperforms the general problem. This is because (if you look at a diff between the two resulting binaries), the inclusion model provides enough information to the compiler allowing it to remove the `bar()` and directly inline the `foo()` into the performance test. We could do the same thing if we wrote `B` as follows in the general problem:
+As shown above, the inclusion model outperforms the general problem (by about 20% or more). This is because (if you look at a diff between the two resulting binaries), the inclusion model provides enough information to the compiler allowing it to remove the `bar()` function and directly inline the `foo()` function into the performance test. We could do the same thing if we wrote `B` as follows in the general problem:
 
 ```cpp
 #include "a.h"
