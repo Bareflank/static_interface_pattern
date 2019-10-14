@@ -118,8 +118,7 @@ class B :
 {
 public:
 
-    template<typename A>
-    B(A &&a) :
+    B(AInterface &a) :
         m_a{a}
     { }
 
@@ -141,11 +140,13 @@ To use `A` and `B`, we can do the following:
 
 int main()
 {
-    B b(A{});
+    A a;
+    B b(a);
     b.bar();
 
     return 0;
 }
+
 ```
 
 As shown above, we can see that `A` and `B` now adhere to the S.O.L.I.D principles. Since `B` only depends on the interface of `A`, `A` can change without changing `B`. In addition, we can provide `B` with any version of `A` we want meaning that `B` is open to extension while closed to modifications. For example, we can implement a unit test of `B` as follows:
@@ -166,7 +167,8 @@ public:
 
 int main()
 {
-    B b(A_mock{});
+    A_mock a;
+    B b(a);
     b.bar();
 
     return 0;
