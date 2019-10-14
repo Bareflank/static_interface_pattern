@@ -30,8 +30,7 @@ class B :
 {
 public:
 
-    template<typename A>
-    B(A &&a) :
+    B(AInterface &a) :
         m_a{a}
     { }
 
