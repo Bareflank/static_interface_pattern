@@ -56,19 +56,11 @@ The biggest issue with the above example is it doesn't adhere to the S.O.L.I.D d
 - [Interface segregation principle](https://en.wikipedia.org/wiki/Interface_segregation_principle)
 - [Dependency inversion principle](https://en.wikipedia.org/wiki/Dependency_inversion_principle)
 
-Let us dive into each of these principles to see how the general problem above measures up:
-
-### Single Responsibility Principle (SRP)
-
-Since we do not define `A`'s and `B`'s responsibilities, the SRP is is not applicable to our example.
+Of these 5, our example has issues with 3 of them. 
 
 ### Open–Closed Principle (OCP)
 
 The general problem above does not adhere to the OCP as `B` is not open to extension. `B` directly depends on `A`, which means that any changes to `A` will change `B`. In other words, there is no way to add functionality to `A` without `B` knowing about it. To fix this, we will need to provide `B` with an interface to `A` instead of directly relying on `A` itself.
-
-### Liskov Substitution Principle (LSP)
-
-The general problem above doesn't leverage inheritance and therefore there are no subtypes meaning the LSP is not applicable to this example.
 
 ### Interface Segregation Principle (ISP)
 
