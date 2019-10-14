@@ -29,15 +29,17 @@ class B :
     public BInterface
 {
 public:
-    B(AInterface *a) :
+
+    template<typename A>
+    B(A &&a) :
         m_a{a}
     { }
 
     void bar() override
-    { m_a->foo(); }
+    { m_a.foo(); }
 
 private:
-    AInterface *m_a;
+    AInterface &m_a;
 };
 
 #endif
