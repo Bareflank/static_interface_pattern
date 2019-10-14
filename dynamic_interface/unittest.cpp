@@ -19,9 +19,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "a.h"
+#include "a_interface.h"
+#include "b.h"
 
-void
-A::foo()
+#include <iostream>
+
+class A_mock :
+    public AInterface
 {
+public:
+    void foo() override
+    { std::cout << "mocked foo\n"; }
+};
+
+int main()
+{
+    A_mock a;
+    B b(&a);
+    b.bar();
+
+    return 0;
 }

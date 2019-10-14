@@ -1,6 +1,6 @@
-# Static Abstract Interface Pattern
+# Static Interface Pattern (SIP)
 
-The static abstract interface pattern (SAIP) provides the ability to implement the S.O.L.I.D. design principles, including the use of abstract interfaces without the need for virtual inheritance, improving the run-time performance of abstraction.
+SIP provides the ability to implement the S.O.L.I.D. design principles in C++ without the need for virtual inheritance.
 
 ## General Problem
 
@@ -10,41 +10,31 @@ Suppose we have the following class:
 class A
 {
 public:
-    void foo();
+    void foo() { }
 };
 ```
 
-With the following implementation:
+Now suppose we wish to use `A` in another class as a private member variable as follows:
 
 ```cpp
-void
-A::foo()
-{ }
-```
+#include "a.h"
 
-Now suppose we wish to use this class in another class as a private member variable as follows:
-
-```cpp
-struct B
+class B
 {
-    void bar();
+public:
+    void bar()
+    { m_a.foo(); }
+
+private:
     A m_a;
 };
-```
-
-With the following implementation:
-
-```cpp
-void
-B::bar()
-{
-    m_a.foo();
-}
 ```
 
 Finally, let us instantiate `B` in our application as follows:
 
 ```cpp
+#include "b.h"
+
 int main()
 {
     B b;
@@ -58,10 +48,6 @@ int main()
 
 The above example is a simple demonstration of a class hierarchy that most C++ programmers have implemented at one point in time or another. Simply put, this example shows a class depending on another class.
 
-There are some advantages to the above example:
-- **Performance**: This example performs at run-time really well. In fact, it performs so well, we will use this example as our "baseline" throughout this explanation as our goal with the static abstract interface pattern is to perform at least as good or better when compared to this example.
-- **Readability**": This example is simple to understand and read, which is why this example is always used when teaching C++.
-
 The biggest issue with the above example is it doesn't adhere to the S.O.L.I.D design principles. The S.O.L.I.D design principles are a set of 5 principles designed to address different types of common problems found in projects that leverage object oriented programming. These 5 principles are as follows:
 
 - [Single responsibility principle](https://en.wikipedia.org/wiki/Single_responsibility_principle)
@@ -70,241 +56,90 @@ The biggest issue with the above example is it doesn't adhere to the S.O.L.I.D d
 - [Interface segregation principle](https://en.wikipedia.org/wiki/Interface_segregation_principle)
 - [Dependency inversion principle](https://en.wikipedia.org/wiki/Dependency_inversion_principle)
 
-Let us dive deeper into each of these principles to see how our example handles each one.
+Let us dive into each of these principles to see how the general problem above measures up:
 
-### Single responsibility principle
+### Single Responsibility Principle (SRP)
 
-The single responsibility principle (SRP) states that an object should only be responsible for one job. For example, a car is capable of driving and playing music:
+Since we do not define `A`'s and `B`'s responsibilities, the SRP is is not applicable to our example.
 
-```cpp
-struct car
-{
-    void drive();
-    void play_music();
-};
-```
+### Open–Closed Principle (OCP)
 
-The above example doesn't adhere to the SRP as the car has two different responsibilities: driving and playing music. Failure to adhere to the SRP produces tight coupling in your source code. Changes to how the car drives could inadvertently affect how the car plays music. There are many ways to address this issue including delegation and inheritance. For example:
+The general problem above does not adhere to the OCP as `B` is not open to extension. `B` directly depends on `A`, which means that any changes to `A` will change `B`. In other words, there is no way to add functionality to `A` without `B` knowing about it. To fix this, we will need to provide `B` with an interface to `A` instead of directly relying on `A` itself.
 
-```cpp
-struct engine
-{
-    void drive();
-};
+### Liskov Substitution Principle (LSP)
 
-struct stereo
-{
-    void play_music();
-};
+The general problem above doesn't leverage inheritance and therefore there are no subtypes meaning the LSP is not applicable to this example.
 
-struct car :
-    public engine,
-    public stereo
-{
-};
-```
+### Interface Segregation Principle (ISP)
 
-In the example above, we are now adhering to the SRP. An `engine` is responsible for driving, while the `stereo` is responsible for playing music. The `car` is responsible for integrating the two into a single object, but doesn't include its own logic (its responsibility is integration, not logic).
+Since we do not define `A`'s and `B`'s responsibilities, we do not know if `A` or `B` provide the needed level of abstraction to prevent clients from depending on interfaces they do not need. We can, however, still state that the general problem above does not adhere to the ISP as clients of `B` are required to include the definition of `A`, since `B`'s definition includes `A`'s definition. The larger a project gets, the more this type of problem will result in hard to debug dependency chains. To solve this problem, both `A` and `B` will need their own interfaces that do not include the "details" of their implementations.
 
-In our example problem above, we correctly adhere to the SRP. The `A` object is responsible for executing `foo()` while the `B` object is responsible for executing `bar()`. The issue with the general problem above has more to do with the fact that `B` needs the `foo()` function to implement `bar()`. In other words, the SAIP doesn't exist to address SRP, but SRP itself can lead to the need for SAIP.
+### Dependency Inversion Principle (DIP)
 
-### Open–closed principle
+The general problem above does not adhere to the DIP as both `A` and `B` fail to depend on their own interfaces, meaning clients of both `A` and `B` will have to depend on the "details" of `A` and `B` instead of the interfaces of `A` and `B`.
 
-The open-closed principle (OCP) states that you should be able to extend the interface of a object without actually modifying the object's interface or implementation of that interface.
+## Dynamic Interfaces
 
-To better explain how this principle works, let us look at the example above as it does not adhere to the open-closed principle. Specifically, let us look at the definition of `B`:
+Typically in C++, abstraction is implemented using pure virtual interfaces (i.e., dynamic interfaces) that leverage runtime polymorphism to separate the details of an object from its interface. For example:
 
 ```cpp
-struct B
-{
-    void bar();
-    A m_a;
-};
-```
-
-Although it is possible to inherit `B` and add additional functionality, if `A` needs to be replaced, `B` would have to be redefined and likely reimplemented. That is, the definition of `B` is highly coupled with `A`. Any changes to `A` will likely affect `B`.
-
-There are a couple of ways to solve this problem. We could use an abstract interface, which is usually implemented using pure virtual inheritance as follows:
-
-```cpp
-class interface
+class AInterface
 {
 public:
-    virtual ~interface() = default;
+    virtual ~AInterface() = default;
     virtual void foo() = 0;
 };
 ```
 
-With `A` being defined as follows:
+The above pure virtual interface defines the interface for `A`. Using this interface, `A` can be defined as the following:
 
 ```cpp
+#include "a_interface.h"
+
 class A :
-    public interface
+    public AInterface
 {
 public:
-    void foo() override;
+    void foo() override { }
 };
 ```
 
-We can now implement `B` as follows:
+As shown above, `A` now inherits our interface, and overrides the foo() function. To implement `B`, we must first define its interface as follows:
 
 ```cpp
-struct B
+class BInterface
 {
-    void bar();
-    interface *m_a;
+public:
+    virtual ~BInterface() = default;
+    virtual void bar() = 0;
 };
 ```
 
-Instead of `B` relying on `A`, it relies on `interface`. So long as `A` continues to implement the abstract interface, it can change as needed without affecting `B`. Another way to solve this problem is through the use of template classes as follows:
+With the above interface defined for `B`, we can now define `B` as the following:
 
 ```cpp
-template<typename T>
-struct B
+#include "b_interface.h"
+#include "a_interface.h"
+
+class B :
+    public BInterface
 {
-    void bar();
-    T m_a;
-};
-```
-
-As shown above, instead of `B` depending on `A`, it depends on a template type `T`. This pattern is used extensively in C++. Instead of `A` implementing an interface, `A` must implement a "Concept". Both of the examples above, however, do not address the binary compatibility of `B`. Although `B` doesn't rely on `A` (it either relies on an interface or a Concept), the binary layout of `B` still changes if the interface or concept changes.
-
-To adhere to the true intent of the OCP, we can leverage a design pattern called a private implementation, or "PIMPL". For example:
-
-```cpp
-struct B
-{
-    B();
-    ~B();
-
-    void bar();
-    void *d;
-};
-```
-
-In the definition of `B` above, we no longer store a pointer to an interface of `A`. Instead, we store a `void *` pointer. The implementation of `B` is as follows:
-
-```cpp
-struct pimpl
-{
-    pimpl() :
-        m_a{new A}
+public:
+    B(AInterface *a) :
+        m_a{a}
     { }
 
-    ~pimpl()
-    {
-        delete m_a;
-    }
+    void bar() override
+    { m_a->foo(); }
 
-    void bar()
-    {
-        m_a->foo();
-    }
-
-    interface m_a;
-};
-
-B::B() :
-    d{new pimpl}
-{ }
-
-~B::B()
-{
-    delete pimpl;
-}
-
-void
-B::bar()
-{
-    static_cast<pimpl *>(d)->bar();
-}
-```
-
-As shown above, we start with the definition and implementation of a private `pimpl` class. When `B` is created, it allocates a pointer to the `pimpl` class and stores it in `B` as a `void *`, meaning the definition of `B` does not include any information about the `pimpl`, and instead just stores a raw pointer. Whenever, `B` needs to call `bar()`, it does so by forwarding the call to the `pimpl`.
-
-Now, if `A` changes, the binary layout of `B` doesn't change, only the binary layout of the `pimpl` changes. The downside to how this works is the call to `foo()` now must go through several layers of abstraction including the `pimpl`, and the vTable introduced by the use of pure virtual inheritance. It should also be noted that this same approach can also be implemented using the template class approach, which at least removes the vTable overhead. NBoth approaches however still also require the addition of heap memory (hence the use of `new`).
-
-In other words, unless you are writing a library that is intended to maintain binary compatibility, the most important part of the OCP
-
-### Liskov substitution principle
-
-The Liskov substitution principle (LSP) ensures that if a subtype reimplements an object's API, the API behaves the same. In other words, you should be able to substitue a subtype with its parent without any addition modifications to your program.
-
-Our example above doesn't leverage inheritance and therefore there are no subtypes. Later on, however, we will show how S.O.L.I.D can be implemented using dynamic and static polymorphism, both of which leverage inheritance in a way that requires that the LSP is adhered to.
-
-### Interface segregation principle
-
-The interface segregation principle (ISP), states that client of an API should only depend (or even be made aware of) the APIs they depend on. In some sense, this principle is similar to the SRP. Instead of one large object with hundreds of APIs, a good design would be broken up into many smaller objects, each with their own, single set of responsibilities.
-
-What distinguishes this principle from the SRP is clients should only be made aware of APIs they require. In C++, this translates to header files. In our example above, the ISP is not adhered to as `B` includes `A` in its own include file. This means that clients of `B` must also be made aware of `A` to work. In other words, clients of `B`, who only care about the APIs that `B` provides must also include the header files that define `A`, and as a result, become dependent on `A` even though they don't need to.
-
-Although this seems like a trival problem, this type of issue creates a chain of dependencies that quickly turns into a nightmare in larger projects, even at times generating issues with circular references. Furthermore, this problem often times increases the expense of refactoring code as changing `A` could also change `B`.
-
-The solution to this problem involves the use of abstract interfaces (as is with most of the principles defined by S.O.L.I.D).
-
-### Dependency inversion principle
-
-Finally, we have the dependency inversion principle (DIP), which states that clients should never depend on their API's concrete defintions, but rather an abstract interface. That is to say, an API adheres to and implements an abstract interface ensuring clients only every need to include the abstract interface. The DIP is the logical solution to most of the problems identified by S.O.L.I.D, and in most texts on the issue, pure virtual inheritance is the preferred approach.
-
-## Dynamic Abstraction
-
-Dynamic abstraction is simply another way of saying pure virtual abstract interfaces, or run-time polymorphism. Most of the literature on the subject leverages this approach to implementing the S.O.L.I.D principles. To better understand how this works, let us refactor our original example using dynamic abstraction.
-
-```cpp
-class interface
-{
-public:
-    virtual ~interface() = default;
-    virtual void foo() = 0;
+private:
+    AInterface *m_a;
 };
 ```
 
-We start with a defintion of our abstract interface using pure virtual abstraction as shown above. All of the functions in our interface a marked as pure virtual, and we have marked the interface's destructor as virtual to ensure deletion if handled properly. From here, `A` can be defined as follows:
+As shown above, `B` now stores a pointer to the interface of `A` and not an instance of `A`, which is initialized in the constructor (resulting in an ownership issue as someone else must now instantiate A). Since the defintion of `B` no longer creates an instance of `A`, it too only depends on the interface and not `A` itself, meaning `B` only includes the interface.
 
-```cpp
-#include "interface.h"
-
-class A :
-    public interface
-{
-public:
-    void foo() override;
-};
-```
-
-As shown above, `A` now inherits our interface, and overrides the foo() function in the interface. An important note here is that the defintion of `A` only includes the interface. The implementation of `A` doesn't change as before. The defintion of `B` however, now looks like this:
-
-```cpp
-#include "interface.h"
-
-struct B
-{
-    B(interface *a);
-
-    void bar();
-    interface *m_a;
-};
-```
-
-As shown above, `B`, now stores a pointer to the interface of `A` and not an instance of `A` directly. Since the defintion of `B` no longer creates an instance of `A`, it too only depends on the interface and not `A` itself, meaning `B` only includes the interface. For this system to work, we must store a pointer to an interface and not the interface itself as a complete representation of `B` must exist somewhere. As a result, this abstraction introduces an ownership issue that we must resolve. Some implementations could allocate `A` in the constructor of `B`, which is fine so longer as this code is located in its own source file, hiding the details of `A` from `B`'s clients. In our example, however, we will pass a pointer to `A` to `B`'s constructor, meaning something else will own the lifetime of `A`.
-
-The implementation of `B` now looks like this:
-
-```cpp
-#include "b.h"
-
-B::B(interface *a) :
-    m_a{a}
-{ }
-
-void
-B::bar()
-{
-    m_a->foo();
-}
-```
-
-As shown above, `B` only ever relies on the interface. Details about how `A` is implemented are irrelevant to `B`. From here, our main logic looks like this:
+To use `A` and `B`, we can do the following:
 
 ```cpp
 #include "a.h"
@@ -320,27 +155,20 @@ int main()
 }
 ```
 
-If we take a quick look at the S.O.L.I.D principles, we can see that we still adhere to the SRP as `A` and `B` still have single responsibilities. We also adhere to the OCP as we are still free to extend `A` and `B`, and modifications to `A` do not effect `B`. In this implementation, we do not implement the `pimpl` portion of this concept as we are not concerned about binary compatibility (as we are not creating a library), but instead on coupling and cohesion. We adhere to the LSP as we are inheriting a pure virtual interface and as such, the interface's behavior has not yet been defined (meaning our implementation of the interface can take on anything and still adhere to the LSP). We adhere to the ISP as we adhere to the SRP, our interfaces are as small as we can make them and the defintions of `A` and `B` do not expose clients to implementation specific details but rather these defintions only ever include the interface. Finally we adhere to the DIP as `A` and `B` are interconnected via the interface and never directly include each other (meaning `B`'s dependency on `A` is inverted).
-
-With the example above, we have adhered to the S.O.L.I.D principles. The problem with this example is we have introduced a layer of abstraction that comes with a run-time cost. Whenever `B` executes `A`, it must first perform a vTable lookup and function call redirection. Furthermore, the compiler is not able to inline the call to `A` as it is not sure if it is calling `A` or some other object `C` that also adheres to same interface.
-
-The fundamental problem with dynamic abstraction is it uses run-time polymorphism to perform abstraction on code that was originally static in nature. Run-time polymorphism is designed to allow the programmer, at run-time, to swap between a type and its subtype as needed. Not to ensure object oriented code is properly designed and implemented to reduce coupling and increase cohesion. By using dynamic abstraction to solve this problem, we are introducing run-time performance penalties.
-
-This design approach does have some advantages. For example, it is easy to read and understand. Run-time polymorphism has been around forever and as such, the C++ language has first-class facilities to ensure it is easy to use and understand. This approach also provides a clean way to unit test `B` by providing a mock of `A` as follows:
+As shown above, we can see that `A` and `B` now adhere to the S.O.L.I.D principles. Since `B` only depends on a pointer to the interface of `A`, `A` can change without changing `B`. In addition, we can provide `B` with any version of `A` we want meaning that `B` is open to extension while closed to modifications. For example, we can implement a unit test of `B` as follows:
 
 ```cpp
-#include "interface.h"
+#include "a_interface.h"
 #include "b.h"
 
 #include <iostream>
 
-struct A_mock :
-    public interface
+class A_mock :
+    public AInterface
 {
+public:
     void foo() override
-    {
-        std::cout << "mocked foo\n";
-    }
+    { std::cout << "mocked foo\n"; }
 };
 
 int main()
@@ -353,88 +181,152 @@ int main()
 }
 ```
 
-As shown above, instead of including `A` in our `main()` function, we include the interface and create our own version of `A` that mocks the interface, allowing us to test `B` as needed.
+As shown above, we can use `A`'s interface to mock `A`, without making any modifications to `B`, meaning we now adhere to OCP. We also adhere to ISP as `B` no longer includes the definition of `A`, only the interface, and we also adhere to DSP as both `A` and `B` only depend on interfaces.
 
-## Static Abstraction
+There are some issues with dynamic interfaces however. The first issue with dynamic interfaces is they add additional overhead. For example, with some tricks (can be seen in the source code examples) to ensure inlining is controlled, we can see the main function for the general problem looks like this following:
 
-The goals of static abstraction are to leverage the design advantages of dynamic abstraction without the performance hits it imposes. To accomplish this, we will start by implementing our interface as follows:
+```
+0000000000401020 <main>:
+  401020:	e8 fb 00 00 00       	callq  401120 <_ZN1A3fooEv.isra.0>
+  401025:	31 c0                	xor    %eax,%eax
+  401027:	c3                   	retq
+```
+
+The resulting code of this same logic using dynamic interfaces results in the following:
+
+```
+0000000000401040 <main>:
+  401040:	48 83 ec 18          	sub    $0x18,%rsp
+  401044:	48 c7 44 24 08 60 20 	movq   $0x402060,0x8(%rsp)
+  40104b:	40 00
+  40104d:	48 8d 7c 24 08       	lea    0x8(%rsp),%rdi
+  401052:	e8 f9 00 00 00       	callq  401150 <_ZN1A3fooEv>
+  401057:	31 c0                	xor    %eax,%eax
+  401059:	48 83 c4 18          	add    $0x18,%rsp
+  40105d:	c3                   	retq
+```
+
+The extra logic seen above is needed to initialize the vTable of `A` and get access to the function pointer to `foo()`. Whether or not this overhead actually ends up becoming a problem for your applications depends on your application as modern compilers are amazing at removing the overhead of virtual inheritance.
+
+The other issue with dynamic interfaces is they do not support static functions. Meaning, if `A` defines a static function that `B` needs to use, this entire scheme no longer works as there is no way to define a static function in a pure virtual interface.
+
+## Static Interfaces
+
+The goal of the static interface pattern (SIP) is to address the issues of dynamic interfaces by implementing abstraction without the need for virtual inheritance. To accomplish this, we will use the following class:
 
 ```cpp
+template<
+    template<typename> typename INTERFACE,
+    typename DETAILS
+    >
+class type :
+    public INTERFACE<type<INTERFACE, DETAILS>>
+{
+    using details_type = DETAILS;
+
+    DETAILS d;
+    friend class INTERFACE<type<INTERFACE, DETAILS>>;
+
+    constexpr static DETAILS*
+    details(INTERFACE<type<INTERFACE, DETAILS>> *i)
+    { return &(static_cast<type<INTERFACE, DETAILS> *>(i)->d); }
+
+    constexpr static const DETAILS*
+    details(const INTERFACE<type<INTERFACE, DETAILS>> *i)
+    { return &(static_cast<const type<INTERFACE, DETAILS> *>(i)->d); }
+};
+```
+
+The above class implements Static Polymorphism (also called Curiously Recurring Template Pattern). The difference is, the above class provides a means to define an object's interface and implementation separately and then combine different implementations with the same interface as needed, all at compile time.
+
+To better understand how this class works, let us first look at `A`'s interface as follows:
+
+```cpp
+namespace interface
+{
+
 template<typename T>
-struct interface
+struct A
 {
     constexpr void foo()
-    {
-        static_cast<T *>(this)->d.foo();
-    }
+    { T::details(this)->foo(); }
 };
+
+}
 ```
 
-To better understand how this will work, let us also show how `A` is defined:
+As shown above, the interface is defined using a template. We wrap the interface in an "interface" namespace so that the interface can be called `interface::A`. Each of the functions within the interface call into its own subtype using the `details` function, which returns a pointer to the subtype's private implementation.
+
+With this interface, `A` is defined as follows:
 
 ```cpp
-#include "interface.h"
+#include "a_interface.h"
 
-class A :
-    public interface<A>
+namespace details
 {
-    struct details {
-        void foo();
-    };
 
-    details d;
-    friend class interface<A>;
+class A
+{
+public:
+    void foo() { }
 };
+
+}
+
+using A = type<interface::A, details::A>;
 ```
 
-The combination of `A` and the interface is a pattern called static polymorphism (also referred to as curiously recurring template pattern). `A` inherits the interface, which intern provides a defintion of itself to the interface. The interface itself makes call back to `A` as needed which provides the interface at compile-time with an implementation of itself. Finally, we wrap the implementation of `A` into a `details` structure to ensure that anything using the interface can only ever access functions from the interface (ensuring the user of the interface doesn't accidentially introduce coupling)
+As shown above, `A` is defined the same as our general problem. The only difference is, we wrap the definition of `A` in a namespace called "details" allowing us to call the implementation `details::A`. From here, we use our `type` class to actually create `A` with `using A = type<interface::A, details::A>`.
 
-Although static polymorphism is critical to the design of the static abstract interface pattern, it is not enough. `B` itself must only ever depend on the interface. The problem with static polymorphism is that you cannot simply store a pointer to the interface to access the functions the interface contains. Instead, if you attempt to access the interface's functions, you must also know information about the type provided to the interface. Meaning, the interface and its implementation are always coupled at compile-time, a problem that dynamic polymorphism does not share. To solve this problem, we complete our static abstract interface pattern with the following defintion of `B`:
+The next step is to define the interface for `B` as follows:
 
 ```cpp
-#include "interface.h"
-#include <type_traits>
+namespace interface
+{
 
 template<typename T>
 struct B
 {
-    static_assert(std::is_base_of_v<interface<T>, T>);
-
-    void bar();
-    T m_a;
+    constexpr void bar()
+    { T::details(this)->bar(); }
 };
-```
 
-As shown, `B` is also defined as a template. We leverage `std::is_base_of` to ensure that `T` adheres to the interface and we store our instance of `T` as a member of `B`, just like our original example. Note that if binary compatibility (as defined by OCP) is required, you could add a `pimpl` to `B` as well to store `T`.
-
-One issue with the use of a template definition of `B` is where you place the source code. Typically, template classes are defined and implemented in a header file. For a large project, with a lot of objects, this is a terrible idea as compile times would be terrible. It also reintroduces issues with the ISP as your implementation will almost certainly have its own dependencies and includes that you do not want in your definition of `B` (once again, we only want `B`'s definition to require the interface, but if the definition also implements `B`, you might have other headers, dependencies and coupling that you would have to include). To address this, we will place the implementation of `B` in its own source file as follows:
-
-```cpp
-#include "b.h"
-
-template<typename T>
-void
-B<T>::bar()
-{
-    m_a.foo();
 }
 ```
 
-As shown above, `B` is able to call the `foo()` function as needed, and it can only call functions in the interface as `A` itself is actually implemented in the `details` nested class, preventing access or even visibility to any of these functions.
-
-Of course the question is, how do we compile this code as it is a template, and not actual source code. In our previous example, the implementation of `B` statically stated that `A` was the "thing" that `B` depended on. The goal of the static abstract interface pattern is to adhere to S.O.L.I.D, and not to simply use generic programming everywhere. Meaning, nothing about the original problem has changed. `B` still relies on `A`, and therefore adding the following to `B`'s implementation is an option:
+As shown above, we use the same pattern as above to create our interface. `B` is define as follows:
 
 ```cpp
-#include "a.h"
-template class B<A>;
+#include "a_interface.h"
+#include "b_interface.h"
+
+namespace details
+{
+
+template<typename T>
+class B
+{
+public:
+    void bar()
+    { m_a.foo(); }
+
+private:
+    interface::A<T> m_a;
+};
+
+}
+
+template<typename T>
+using B = type<interface::B, details::B<T>>;
 ```
 
-The above code is called "explicit instantiation", and results in a complete definition of `B` given `A`, meaning we can now use `B<A>` anywhere we include the definition of `B`. Note that since the definition of `B` doesn't include the defintion of `A`, our code still adheres to S.O.L.I.D. Another option is to include the implementation of `B` when `B` is actually instantiated as follows:
+As shown above, the definition of `B` is identical the the general problem with some exceptions. First, `B` is now a template class so that we can provide `B` with different versions of `A` as needed. Instead of directly instantiating `A`, we instantiate `A` using its interface using static polymorphism. Like `A`, `B` is implemented in a "details" namespace, and defined using the `type` class. The difference is that `B` must remain a template type to ensure we can give it whatever `A` we want.
+
+To use this code, we can do the following:
 
 ```cpp
 #include "a.h"
 #include "b.h"
-#include "b.cpp"
 
 int main()
 {
@@ -445,25 +337,31 @@ int main()
 }
 ```
 
-As shown above, we include "b.cpp" which ensures that we get a complete implementation of `B` using the "inclusion" model. Note that both the explicit instantiation model, or the inclusion model work, and it just depends on how your project is organized. As will be shown, the inclusion model is the preferred approach as the compiler is given a complete defintion of the template class, allowing for further optimizations that even our general problem above cannot realize.
+Compared to dynamic interfaces, static interfaces solve the ownership issues as `A` is instantiated in `B` without `B` having to rely on the definition of `A`. Static interfaces also support static functions as the interface can use the `details_type` type to access a static function, allowing the interface to override static functions (something dynamic interfaces cannot do).
 
-With respect to testing, like dynamic abstraction, static abstraction also supports testing as follows:
+With respect to performance, once again, this depends on your application. If we compare the resulting binary of our static interface with the resulting binary of our general problem (with --strip-all to remove strings), the binaries are identical (byte for byte), meaning the compiler is able to take the above template code and reduce it to the same code as the general problem. This doesn't mean that static interfaces do not come at a cost as the applications string table is much larger with all of the additional decorations (so strip them), and the above code is far more difficult to understand without really knowing how templates work including static polymorphism, so there is a human cost to this abstraction (something C++20 will likely address with C++ Concepts)
+
+For reference, mocking works as follows:
 
 ```cpp
-#include "interface.h"
+#include "a_interface.h"
 #include "b.h"
-#include "b.cpp"
 
 #include <iostream>
 
-struct A_mock :
-    public interface<A_mock>
+namespace details
 {
+
+class A_mock
+{
+public:
     void foo()
-    {
-        std::cout << "mocked foo\n";
-    }
+    { std::cout << "mocked foo\n"; }
 };
+
+}
+
+using A_mock = type<interface::A, details::A_mock>;
 
 int main()
 {
@@ -474,123 +372,4 @@ int main()
 }
 ```
 
-As shown above, instead of including `A`, we include the interface and create a mocked version of `A` so that we can test `B`. The difference is this type substitution occurs without the need for virtual inheritance improving performance.
-
-## Performance Comparisons
-
-To prove that the static abstract interface pattern performs as good or better than the approach taken in the general problem, let us create a simple set of performance tests.
-
-First, we will need a control as follows:
-
-```cpp
-#include "b.h"
-
-int main()
-{
-    B b;
-
-    for (auto i = 0ULL; i < 1000000000; i++) {
-        b.bar();
-    }
-
-    return 0;
-}
-```
-
-The above performance test uses our "bad" implementation defined in the original general problem. If we execute this code using "time" we get the following output (on an Intel(R) Core(TM) i7-7500U):
-
-```bash
-> time ./bad/bad_perf
-
-real    0m1.466s
-user    0m1.461s
-sys     0m0.002s
-```
-
-If we run the same test using dynamic abstraction, we get the following:
-
-```bash
-> time ./dynamic_abstraction/dynamic_abstraction_perf
-
-real    0m1.758s
-user    0m1.748s
-sys     0m0.006s
-```
-
-Clearly, dynamic abstraction runs slower (20% slower). Now let us run the same performance test using the explicit instantiation version of our static abstract interface:
-
-```bash
-> time ./static_abstraction/static_abstraction_perf
-
-real    0m1.461s
-user    0m1.456s
-sys     0m0.003s
-```
-
-As shown, our static abstract interface performs as good as the general problem does that doesn't adhere to S.O.L.I.D, meaning static abstraction doesn't impose a run-time performance cost, but still provides the needed abstraction to remain compliant. It should also be noted that if you do a binary diff between the explicit instantiation version of our pattern with the general problem, you get a byte for byte exact copy. Meaning, even though static abstraction adds all of the additional template source code overhead, the resulting code is byte for byte identical to the source code in the general problem once compiled... something dynamic abstraction cannot claim. This does not mean that static abstraction doesn't come at a cost as it is clearly more difficult to read and understand. All we claim is that it does not impose a run-time performance hit, and should outperform the general implementation with respect to build times as the reduction of include files not only decouples the code, it also helps with build times (less headers including more headers).
-
-If we use the inclusion model, we see the following:
-
-```bash
-> time ./static_abstraction/static_abstraction_perf
-
-real    0m1.171s
-user    0m1.167s
-sys     0m0.003s
-```
-
-As shown above, the inclusion model outperforms the general problem (by about 20% or more). This is because (if you look at a diff between the two resulting binaries), the inclusion model provides enough information to the compiler allowing it to remove the `bar()` function and directly inline the `foo()` function into the performance test. We could do the same thing if we wrote `B` as follows in the general problem:
-
-```cpp
-#include "a.h"
-
-struct B
-{
-    inline void bar()
-    {
-        m_a.foo();
-    }
-
-    A m_a;
-};
-```
-
-Once again, however, this would result in implementation details showing up in our definition, likely resulting in more dependencies and higher coupling. Using the template approach for `B` allows us to keep the definition and implementation separate, while still allowing the compiler to inline as needed (i.e. best of both worlds).
-
-## C++20 Concepts
-
-C++20 offers to remove the human costs of this pattern through the use of C++20 Concepts (at the expense of the C++ language and compilers being more complex). To better understand how this will work once C++20 is available, let us look at how the interface would be written:
-
-```cpp
-template<typename T>
-concept interface = requires(T t) {
-    { t.foo() };
-};
-```
-
-As shown here, using C++20 concepts allows us to remove the need for static polymorphism from the pattern (the need for `B` to be a template is still required), allowing `A` to be defined as the following:
-
-```cpp
-class A
-{
-public:
-    void foo();
-};
-```
-
-As shown, `A` now has the same defintion as our general problem, meaning `A` is now a simple class with now additional decorations. The definition of `B` is as follows:
-
-```cpp
-#include "interface.h"
-
-template<interface T>
-struct B
-{
-    void bar();
-    T m_a;
-};
-```
-
-As shown above, `B` must still be a template, but `T` is now defined using the `interface` and not `typename`. This removes the need for the type traits static assert, and instead tells the compiler to use C++20 Concepts to ensure that `T` adheres to the Concept called `interface`. Everything else about this pattern remains the same. For more information, please see the following:
-
-https://www.cppfiddler.com/2019/06/09/concept-based-interfaces/
+In general, static interfaces address all of the problems that dynamic interfaces introduce when attempting to add abstraction and adhere to S.O.L.I.D at the expense of being more difficult to understand.

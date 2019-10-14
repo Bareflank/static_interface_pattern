@@ -19,15 +19,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "b.h"
+#ifndef A_H
+#define A_H
 
-int main()
+#include "a_interface.h"
+
+namespace details
 {
-    B b;
 
-    for (auto i = 0ULL; i < 1000000000; i++) {
-        b.bar();
-    }
+static volatile int g_count;
+#define NOINLINE __attribute__ ((noinline))
 
-    return 0;
+class A
+{
+public:
+    void NOINLINE foo() { g_count += 1; }
+};
+
 }
+
+using A = type<interface::A, details::A>;
+
+#endif

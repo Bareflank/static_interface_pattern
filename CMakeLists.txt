@@ -26,12 +26,12 @@ include(ExternalProject)
 # ------------------------------------------------------------------------------
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_EXE_LINKER_FLAGS "-Wl,--strip-all")
+# set(CMAKE_EXE_LINKER_FLAGS "-Wl,--strip-all")
 
 # ------------------------------------------------------------------------------
 # source
 # ------------------------------------------------------------------------------
 
 add_subdirectory(bad)
-add_subdirectory(dynamic_abstraction)
-add_subdirectory(static_abstraction)
+add_subdirectory(dynamic_interface)
+add_subdirectory(static_interface)

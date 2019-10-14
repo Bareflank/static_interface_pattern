@@ -22,10 +22,13 @@
 #ifndef A_H
 #define A_H
 
+static volatile int g_count;
+#define NOINLINE __attribute__ ((noinline))
+
 class A
 {
 public:
-    void foo();
+    void NOINLINE foo() { g_count += 1; }
 };
 
 #endif

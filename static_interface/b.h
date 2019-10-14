@@ -22,14 +22,26 @@
 #ifndef B_H
 #define B_H
 
-#include "interface.h"
+#include "a_interface.h"
+#include "b_interface.h"
 
-struct B
+namespace details
 {
-    B(interface *a);
 
-    void bar();
-    interface *m_a;
+template<typename T>
+class B
+{
+public:
+    void bar()
+    { m_a.foo(); }
+
+private:
+    interface::A<T> m_a;
 };
+
+}
+
+template<typename T>
+using B = type<interface::B, details::B<T>>;
 
 #endif

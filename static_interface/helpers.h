@@ -19,17 +19,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "a.h"
-#include "b.h"
-#include "b.cpp"
+#ifndef HELPERS_H
+#define HELPERS_H
 
-int main()
+template<
+    template<typename> typename INTERFACE,
+    typename DETAILS
+    >
+class type :
+    public INTERFACE<type<INTERFACE, DETAILS>>
 {
-    B<A> b;
+    using details_type = DETAILS;
 
-    for (auto i = 0ULL; i < 1000000000; i++) {
-        b.bar();
-    }
+    DETAILS d;
+    friend class INTERFACE<type<INTERFACE, DETAILS>>;
 
-    return 0;
-}
+    constexpr static DETAILS*
+    details(INTERFACE<type<INTERFACE, DETAILS>> *i)
+    { return &(static_cast<type<INTERFACE, DETAILS> *>(i)->d); }
+
+    constexpr static const DETAILS*
+    details(const INTERFACE<type<INTERFACE, DETAILS>> *i)
+    { return &(static_cast<const type<INTERFACE, DETAILS> *>(i)->d); }
+};
+
+#endif

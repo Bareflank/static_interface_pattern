@@ -19,19 +19,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef B_H
-#define B_H
+#include "a_interface.h"
+#include "b.h"
 
-#include "interface.h"
-#include <type_traits>
+#include <iostream>
 
-template<typename T>
-struct B
+namespace details
 {
-    static_assert(std::is_base_of_v<interface<T>, T>);
 
-    void bar();
-    T m_a;
+class A_mock
+{
+public:
+    void foo()
+    { std::cout << "mocked foo\n"; }
 };
 
-#endif
+}
+
+using A_mock = type<interface::A, details::A_mock>;
+
+int main()
+{
+    B<A_mock> b;
+    b.bar();
+
+    return 0;
+}

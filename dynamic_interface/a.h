@@ -19,25 +19,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "interface.h"
-#include "b.h"
-#include "b.cpp"
+#ifndef A_H
+#define A_H
 
-#include <iostream>
+#include "a_interface.h"
 
-struct A_mock :
-    public interface<A_mock>
+static volatile int g_count;
+#define NOINLINE __attribute__ ((noinline))
+
+class A :
+    public AInterface
 {
-    void foo()
-    {
-        std::cout << "mocked foo\n";
-    }
+public:
+    void NOINLINE foo() override { g_count += 1; }
 };
 
-int main()
-{
-    B<A_mock> b;
-    b.bar();
-
-    return 0;
-}
+#endif

@@ -16,10 +16,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-add_executable(dynamic_abstraction a.cpp b.cpp main.cpp)
-add_executable(dynamic_abstraction_ut a.cpp b.cpp unittest.cpp)
-add_executable(dynamic_abstraction_perf a.cpp b.cpp performance.cpp)
+add_executable(dynamic_interface main.cpp)
+add_executable(dynamic_interface_ut unittest.cpp)
 
-target_compile_options(dynamic_abstraction PRIVATE -O3 -DNDEBUG)
-target_compile_options(dynamic_abstraction_ut PRIVATE -g)
-target_compile_options(dynamic_abstraction_perf PRIVATE -O3 -DNDEBUG)
+target_compile_options(dynamic_interface PRIVATE -O3)
+target_compile_options(dynamic_interface_ut PRIVATE -O3)

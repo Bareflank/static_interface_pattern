@@ -19,16 +19,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef INTERFACE_H
-#define INTERFACE_H
+#include "a.h"
+#include "b.h"
 
-template<typename T>
-struct interface
+int main()
 {
-    constexpr void foo()
-    {
-        static_cast<T *>(this)->d.foo();
-    }
-};
+    B<A> b;
+    b.bar();
 
-#endif
+    return 0;
+}

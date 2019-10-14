@@ -19,20 +19,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef A_H
-#define A_H
+#ifndef B_INTERFACE_H
+#define B_INTERFACE_H
 
-#include "interface.h"
-
-class A :
-    public interface<A>
+class BInterface
 {
-    struct details {
-        void foo();
-    };
-
-    details d;
-    friend class interface<A>;
+public:
+    virtual ~BInterface() = default;
+    virtual void bar() = 0;
 };
 
 #endif

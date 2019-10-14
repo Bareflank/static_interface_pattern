@@ -19,9 +19,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "a.h"
+#ifndef A_INTERFACE_H
+#define A_INTERFACE_H
 
-void
-A::details::foo()
+#include "helpers.h"
+
+namespace interface
 {
+
+template<typename T>
+struct A
+{
+    constexpr void foo()
+    { T::details(this)->foo(); }
+};
+
 }
+
+#endif

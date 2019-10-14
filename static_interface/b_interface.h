@@ -19,17 +19,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "a.h"
-#include "b.h"
+#ifndef B_INTERFACE_H
+#define B_INTERFACE_H
 
-int main()
+#include "helpers.h"
+
+namespace interface
 {
-    A a;
-    B b(&a);
 
-    for (auto i = 0ULL; i < 1000000000; i++) {
-        b.bar();
-    }
+template<typename T>
+struct B
+{
+    constexpr void bar()
+    { T::details(this)->bar(); }
+};
 
-    return 0;
 }
+
+#endif

@@ -24,9 +24,13 @@
 
 #include "a.h"
 
-struct B
+class B
 {
-    void bar();
+public:
+    void bar()
+    { m_a.foo(); }
+
+private:
     A m_a;
 };
 

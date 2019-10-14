@@ -19,10 +19,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "b.h"
+#ifndef A_INTERFACE_H
+#define A_INTERFACE_H
 
-void
-B::bar()
+class AInterface
 {
-    m_a.foo();
-}
+public:
+    virtual ~AInterface() = default;
+    virtual void foo() = 0;
+};
+
+#endif

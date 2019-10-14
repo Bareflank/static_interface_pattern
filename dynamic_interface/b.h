@@ -19,25 +19,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "interface.h"
-#include "b.h"
+#ifndef B_H
+#define B_H
 
-#include <iostream>
+#include "b_interface.h"
+#include "a_interface.h"
 
-struct A_mock :
-    public interface
+class B :
+    public BInterface
 {
-    void foo() override
-    {
-        std::cout << "mocked foo\n";
-    }
+public:
+    B(AInterface *a) :
+        m_a{a}
+    { }
+
+    void bar() override
+    { m_a->foo(); }
+
+private:
+    AInterface *m_a;
 };
 
-int main()
-{
-    A_mock a;
-    B b(&a);
-    b.bar();
-
-    return 0;
-}
+#endif
