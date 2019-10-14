@@ -56,7 +56,7 @@ The biggest issue with the above example is it doesn't adhere to the S.O.L.I.D d
 - [Interface segregation principle](https://en.wikipedia.org/wiki/Interface_segregation_principle)
 - [Dependency inversion principle](https://en.wikipedia.org/wiki/Dependency_inversion_principle)
 
-Of these 5, our example has issues with 3 of them. 
+Of these 5, our example has issues with 3 of them.
 
 ### Open–Closed Principle (OCP)
 
@@ -117,19 +117,21 @@ class B :
     public BInterface
 {
 public:
-    B(AInterface *a) :
+
+    template<typename A>
+    B(A &&a) :
         m_a{a}
     { }
 
     void bar() override
-    { m_a->foo(); }
+    { m_a.foo(); }
 
 private:
-    AInterface *m_a;
+    AInterface &m_a;
 };
 ```
 
-As shown above, `B` now stores a pointer to the interface of `A` and not an instance of `A`, which is initialized in the constructor (resulting in an ownership issue as someone else must now instantiate A). Since the defintion of `B` no longer creates an instance of `A`, it too only depends on the interface and not `A` itself, meaning `B` only includes the interface.
+As shown above, `B` now stores a reference to the interface of `A` and not an instance of `A`. Dynamic interfaces introduce an issue with ownership. Unlike our general problem (or static interfaces), `B` cannot create `A` as part of its own definition without breaking the OCP. The above example is one way to handle this, but there are many different ways to address this, including the factory pattern.
 
 To use `A` and `B`, we can do the following:
 
@@ -139,15 +141,14 @@ To use `A` and `B`, we can do the following:
 
 int main()
 {
-    A a;
-    B b(&a);
+    B b(A{});
     b.bar();
 
     return 0;
 }
 ```
 
-As shown above, we can see that `A` and `B` now adhere to the S.O.L.I.D principles. Since `B` only depends on a pointer to the interface of `A`, `A` can change without changing `B`. In addition, we can provide `B` with any version of `A` we want meaning that `B` is open to extension while closed to modifications. For example, we can implement a unit test of `B` as follows:
+As shown above, we can see that `A` and `B` now adhere to the S.O.L.I.D principles. Since `B` only depends on the interface of `A`, `A` can change without changing `B`. In addition, we can provide `B` with any version of `A` we want meaning that `B` is open to extension while closed to modifications. For example, we can implement a unit test of `B` as follows:
 
 ```cpp
 #include "a_interface.h"
@@ -165,8 +166,7 @@ public:
 
 int main()
 {
-    A_mock a;
-    B b(&a);
+    B b(A_mock{});
     b.bar();
 
     return 0;
@@ -331,7 +331,7 @@ int main()
 
 Compared to dynamic interfaces, static interfaces solve the ownership issues as `A` is instantiated in `B` without `B` having to rely on the definition of `A`. Static interfaces also support static functions as the interface can use the `details_type` type to access a static function, allowing the interface to override static functions (something dynamic interfaces cannot do).
 
-With respect to performance, once again, this depends on your application. If we compare the resulting binary of our static interface with the resulting binary of our general problem (with --strip-all to remove strings), the binaries are identical (byte for byte), meaning the compiler is able to take the above template code and reduce it to the same code as the general problem. This doesn't mean that static interfaces do not come at a cost as the applications string table is much larger with all of the additional decorations (so strip them), and the above code is far more difficult to understand without really knowing how templates work including static polymorphism, so there is a human cost to this abstraction (something C++20 will likely address with C++ Concepts)
+With respect to performance, once again, this depends on your application. If we compare the resulting binary of our static interface with the resulting binary of our general problem (with --strip-all to remove strings), the binaries are byte-for-byte identical, meaning the compiler is able to take the above template code and reduce it to the same code as the general problem. This doesn't mean that static interfaces do not come at a cost as the applications string table is much larger with all of the additional decorations (so strip them), and the above code is far more difficult to understand without really knowing how templates work including static polymorphism, so there is a human cost to this abstraction (something C++20 will likely address with C++ Concepts)
 
 For reference, mocking works as follows:
 

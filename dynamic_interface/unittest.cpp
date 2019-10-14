@@ -34,8 +34,7 @@ public:
 
 int main()
 {
-    A_mock a;
-    B b(&a);
+    B b(A_mock{});
     b.bar();
 
     return 0;

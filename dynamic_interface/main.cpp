@@ -24,8 +24,7 @@
 
 int main()
 {
-    A a;
-    B b(&a);
+    B b(A{});
     b.bar();
 
     return 0;
