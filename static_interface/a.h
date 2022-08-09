@@ -22,8 +22,11 @@
 #ifndef A_H
 #define A_H
 
+//interface
 #include "a_interface.h"
+#include "iostream"
 
+//implementation
 namespace details
 {
 
@@ -34,10 +37,12 @@ class A
 {
 public:
     void NOINLINE foo() { g_count += 1; }
+    static void func0() {std::cout << "calling static f0()" << std::endl;}
 };
 
 }
 
+//instanciation
 using A = type<interface::A, details::A>;
 
 #endif

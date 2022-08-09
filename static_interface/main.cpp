@@ -26,6 +26,6 @@ int main()
 {
     B<A> b;
     b.bar();
-
+    B<A>::func();
     return 0;
 }

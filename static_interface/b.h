@@ -34,6 +34,8 @@ class B
 public:
     void bar()
     { m_a.foo(); }
+    static void func()
+    { interface::A<T>::func0();}
 
 private:
     interface::A<T> m_a;
