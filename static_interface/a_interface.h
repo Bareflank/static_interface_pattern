@@ -32,6 +32,8 @@ struct A
 {
     constexpr void foo()
     { T::details(this)->foo(); }
+    constexpr static void func0()
+    { T::details_type::func0(); }
 };
 
 }
